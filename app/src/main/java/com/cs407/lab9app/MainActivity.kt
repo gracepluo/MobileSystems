@@ -16,6 +16,7 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -57,20 +58,113 @@ class MainActivity : AppCompatActivity() {
 
     fun onText(view: View) {
         // TODO: Implement the Basic Setup For Text Recognition
-
+        val bitmap = (imageHolder.drawable as BitmapDrawable).bitmap
+        val image = InputImage.fromBitmap(bitmap, 0)
+        val option = TextRecognizerOptions.DEFAULT_OPTIONS
+        val recognizer: TextRecognizer = TextRecognition.getClient(option)
         // TODO: Add Listeners for text detection process
+        recognizer.process(image)
+            .addOnSuccessListener { visionText ->
+                if(visionText.textBlocks.isEmpty()){
+                    toTextBox("Error", getString(R.string.text_recognition_error))
+                }else {
+                    for (block in visionText.textBlocks) {
+                        val text = block.text
+                        val boundingBox = block.boundingBox
+                        for (line in block.lines) {
+                            // Draw bounding box and display text on the app
+                            // Use your helper methods `drawBox` and `toTextBox` here
+                            drawBox(line.boundingBox, line.text, Color.RED, Color.BLUE)
+                        }
+                        toTextBox("Text Found", text)
+                    }
+                }
+            }
+            .addOnFailureListener{
+                //Toast.makeText(context, "Text recognition failed", Toast.LENGTH_SHORT).show()
+                toTextBox("Error", getString(R.string.text_recognition_error))
+                toTextBox("Error", it)
+            }
     }
 
     fun onFace(view: View) {
         // TODO: Implement the Basic Setup For Face Recognition
-
+        val bitmap = (imageHolder.drawable as BitmapDrawable).bitmap
+        val image = InputImage.fromBitmap(bitmap, 0)
+            val options = FaceDetectorOptions.Builder()
+                .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
+                .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
+                .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
+                .setContourMode(FaceDetectorOptions.CONTOUR_MODE_ALL)
+                .build()
+            val detector : FaceDetector = FaceDetection.getClient(options)
         // TODO: Add Listeners for face detection process
+            detector.process(image)
+                .addOnSuccessListener { faces ->
+                    if(faces.isEmpty()){
+                        toTextBox("Error", getString(R.string.face_recognition_error))
+                    }
+                    for (face in faces) {
+                        val bounds = face.boundingBox
+                        val rotate = face.headEulerAngleY
+                        val tilt = face.headEulerAngleZ
+                        val smileProb = face.smilingProbability
+
+                        val leftEye = face.getContour(FaceContour.LEFT_EYE)?.points
+                        leftEye?.let {
+                           drawLine(it, Color.GREEN)
+                        }
+                        val rightEye = face.getContour(FaceContour.RIGHT_EYE)?.points
+                        rightEye?.let {
+                            drawLine(it, Color.GREEN)
+                        }
+                        toTextBox("Bounds ", bounds)
+
+                        if (smileProb == null || smileProb!! < 0.5) {
+                            toTextBox("Smiling", "No!")
+                        }else{
+                            toTextBox("Smiling", "yes!")
+
+                        }
+
+                        toTextBox("Angle Y", rotate)
+                        toTextBox("Angle Z", tilt)
+                    }
+                }
+                .addOnFailureListener{
+                    //Toast.makeText(context, "Text recognition failed", Toast.LENGTH_SHORT).show()
+                    toTextBox("Error", getString(R.string.face_recognition_error))
+                    toTextBox("Error", it)
+
+                }
+
     }
 
     fun onLabel(view: View) {
         // TODO: Implement the Basic Setup For Label Recognition
-
+        val bitmap = (imageHolder.drawable as BitmapDrawable).bitmap
+        val image = InputImage.fromBitmap(bitmap, 0)
         // TODO: Add Listeners for Label detection process
+        val options = ImageLabelerOptions.DEFAULT_OPTIONS
+        val labeler: ImageLabeler = ImageLabeling.getClient(options)
+        labeler.process(image)
+            .addOnSuccessListener { labels ->
+                for (label in labels) {
+                    val item = label.text
+                    val index = label.index
+                    val confident = label.confidence
+                    toTextBox("Item", item)
+                    toTextBox("Index", index)
+                    toTextBox("Confidence", confident)
+                }
+
+            }
+            .addOnFailureListener{
+                //Toast.makeText(context, "Text recognition failed", Toast.LENGTH_SHORT).show()
+                toTextBox("Error", getString(R.string.label_recognition_error))
+                toTextBox("Error", it)
+
+            }
     }
 
     private fun toTextBox(label: String, value: Any) {

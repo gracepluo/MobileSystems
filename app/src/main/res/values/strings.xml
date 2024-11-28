@@ -8,4 +8,10 @@
     <string name="next">Next</string>
 
 <!-- TODO: Add the Error String Here-->
+    <string name="error">Error</string>
+    <string name="text_recognition_error">Text Recognition Error</string>
+    <string name="face_recognition_error">Face Recognition Error</string>
+    <string name="label_recognition_error">Label Recognition Error</string>
+
+
 </resources>
